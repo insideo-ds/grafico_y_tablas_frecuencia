@@ -19,7 +19,7 @@ CONFIG = [
         'columna_valor': 'Peak period (Tp)',
         'rangos_valor': [0, 10, 13, 16, 20],
         'nombre_salida': 'Olas_DirTp_Tp'
-    }
+    },
 ]
 
 """     {
