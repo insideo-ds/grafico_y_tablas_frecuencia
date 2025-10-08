@@ -1,0 +1,23 @@
+from transform import limpiar
+from windrose import WindroseAxes
+from matplotlib import pyplot as plt
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from math import radians
+
+from constants import CONFIG
+from visualizations import show_histogram
+
+
+if __name__ == "__main__":
+    for con in CONFIG:
+        radio = con['columna_valor']
+        intervalos = con['rangos_valor']
+
+        # Limpiar y transformar datos
+        df, tabla_frecuencias = limpiar(**con)
+
+        fig, ax = plt.subplots()
+        show_histogram(ax, df[radio], bins=[0,5,10,15], xlabel=radio, title='Histograma de '+radio)
+        plt.show()
