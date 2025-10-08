@@ -114,28 +114,57 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS):
 
     return ax
 
-def get_table_frequency(ax, tabla):
+def get_table_frequency(ax, tabla, eje_y, eje_x, porcentaje=True):
+    """
+    Dibuja una tabla de frecuencias entre dos columnas categóricas.
 
-    tabla = pd.crosstab(
-        tabla['sector_direccion'],
-        tabla['rango_valor'],
-        normalize=True
-    ) * 100
+    Parámetros:
+    - ax: eje de matplotlib donde se dibuja la tabla.
+    - tabla: DataFrame con los datos.
+    - eje_y: nombre de la columna para las filas.
+    - eje_x: nombre de la columna para las columnas.
+    - porcentaje: si es True, muestra porcentajes sobre el total de la tabla.
+    """
+    # Tabla de frecuencias
+    if porcentaje:
+        tabla_freq_raw = pd.crosstab(tabla[eje_y], tabla[eje_x], normalize=True) * 100
+    else:
+        tabla_freq_raw = pd.crosstab(tabla[eje_y], tabla[eje_x])
 
-    """Crea la tabla de frecuencias en el eje especificado"""
+    # Calcular y adicionar totales sin redondear
+    tabla_freq_raw['Total por fila'] = tabla_freq_raw.sum(axis=1)
+    totales_columna = tabla_freq_raw.sum(axis=0)
+    tabla_freq_raw.loc['Total por columna'] = totales_columna
+
+    # Redondear tabla a 2 decimales
+    tabla_freq = tabla_freq_raw.round(2)
+
+    # Formatear celdas con símbolo % (solo si es True)
+    if porcentaje:
+        tabla_freq = tabla_freq.applymap(lambda x: f"{float(x):.2f}%")
+
+    # Preparar datos para la tabla
+    cell_text = tabla_freq.values
+    row_labels = tabla_freq.index.tolist()
+    col_labels = tabla_freq.columns.tolist()
+
+    # Dibujar tabla
     ax.axis('off')
     tabla_plot = ax.table(
-        cellText=np.round(tabla.values, 2),
-        rowLabels=tabla.index,
-        colLabels=tabla.columns,
+        cellText=cell_text,
+        rowLabels=row_labels,
+        colLabels=col_labels,
         cellLoc='center',
-        loc='center'
+        loc='center',
+        bbox=[0, 0, 1, 1]
     )
     tabla_plot.auto_set_font_size(False)
     tabla_plot.set_fontsize(10)
-    tabla_plot.scale(1, 1.5)
-    ax.set_title('Tabla de Frecuencias (%)', pad=20)
+    tabla_plot.scale(1.2, 1.5)
 
+    sufijo = "(%)" if porcentaje else "(conteos)"
+    titulo = f'Tabla de Frecuencias {sufijo}: {eje_y} vs {eje_x}'
+    ax.set_title(titulo, pad=10, fontsize=12)
 
 def get_histogram(ax, data, bins=10, xlabel=None, ylabel='Frequency', title=None, color='C0'):
     """Dibuja un histograma simple sobre el eje proporcionado.

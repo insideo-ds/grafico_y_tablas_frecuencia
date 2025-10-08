@@ -38,7 +38,7 @@ if __name__ == "__main__":
         get_polar_rose_plot(axes[0], df, r = periodo_pico, theta = "dirtp_rad", intervals = intervalos)
         get_histogram(axes[3], df[periodo_pico], bins=intervalos, xlabel=periodo_pico, title='Histograma de '+periodo_pico)
         get_polar_rose_plot(axes[1], df, r = 'hs_m', theta = "dirtp_rad", intervals = intervalos)
-        #get_table_frequency(axes[2], df, par1="dir_rad", par2="hs")
+        get_table_frequency(axes[2], df, eje_y="dir_bins16", eje_x="hs_bins")
 
         plt.tight_layout()
         plt.show()
