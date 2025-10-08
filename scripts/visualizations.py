@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from constants import CARDINALES, SECTORES
+from constants import DIR16_LABELS
 
-def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=CARDINALES):
+def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS):
     """Dibuja una rosa de vientos (barras polares apiladas) en el eje proporcionado.
 
     Comportamiento clave
@@ -46,7 +46,7 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=CARDINALES):
     get_bar_polar(ax_rosa, df, r=columna_valor, theta='dir_rad', intervals=rangos_valor)
 
     """
-
+    SECTORES = len(cardinales)
     # Asegurarse de que ax sea polar; si no lo es, intentar reemplazarlo
     if getattr(ax, 'name', '') != 'polar':
         fig = ax.figure

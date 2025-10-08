@@ -12,34 +12,33 @@ from math import radians
 from extract import extract
 from transform import transformar
 from visualizations import get_polar_rose_plot, get_table_frequency, get_histogram
-from constants import CARDINALES, CONFIG, SECTORES
+from constants import CONFIG
 
 if __name__ == "__main__":
     # Configuración personalizable
     for con in CONFIG:
+        periodo_pico = "tp_s"
+        intervalos = con['rangos_valor']
+
         #1. Extraer la data
         df = extract(con['path'])
-        dir_grados = con['direccion_grados']
-
-        periodo_pico = "Peak period (Tp)"
-        intervalos = con['rangos_valor']
-        nombre_salida = con.get('nombre_salida', 'rosa')
 
         #2. Limpiar y transformar datos
-        df = transformar(df, dir_grados, periodo_pico, intervalos)
-        print(df.columns)
+        df = transformar(df)
+        df.to_excel(f'data_limpia.xlsx')
 
         #3. Plotear
         fig, axes = plt.subplots(2, 2, figsize=(10, 6))
         axes = axes.flatten()
 
         ## Altura significativa
-        get_table_frequency(axes[2], df)
+        #get_table_frequency(axes[2], df, par1="dir_rad", par2="hs")
 
         ## Periodo pico
-        get_polar_rose_plot(axes[0], df, r = periodo_pico, theta = "dir_rad", intervals = intervalos)
+        get_polar_rose_plot(axes[0], df, r = periodo_pico, theta = "dirtp_rad", intervals = intervalos)
         get_histogram(axes[3], df[periodo_pico], bins=intervalos, xlabel=periodo_pico, title='Histograma de '+periodo_pico)
-        get_polar_rose_plot(axes[1], df, r = 'Significant height (Hm0)', theta = "dir_rad", intervals = intervalos)
+        get_polar_rose_plot(axes[1], df, r = 'hs_m', theta = "dirtp_rad", intervals = intervalos)
+        #get_table_frequency(axes[2], df, par1="dir_rad", par2="hs")
 
         plt.tight_layout()
         plt.show()
