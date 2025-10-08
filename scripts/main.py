@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
         #2. Limpiar y transformar datos
         df = transformar(df)
-        df.to_excel(f'data_limpia.xlsx')
+        df.to_excel(f'out/data_limpia.xlsx')
 
         #3. Plotear
         fig, axes = plt.subplots(2, 2, figsize=(10, 6))
