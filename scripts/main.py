@@ -11,7 +11,7 @@ from math import radians
 
 from extract import extract
 from transform import transformar
-from visualizations import get_polar_rose_plot, get_table_frequency
+from visualizations import get_polar_rose_plot, get_table_frequency, get_histogram
 from constants import CARDINALES, CONFIG, SECTORES
 
 if __name__ == "__main__":
@@ -19,23 +19,27 @@ if __name__ == "__main__":
     for con in CONFIG:
         #1. Extraer la data
         df = extract(con['path'])
-        print(df.head)
-
         dir_grados = con['direccion_grados']
-        radio = con['columna_valor']
+
+        periodo_pico = "Peak period (Tp)"
         intervalos = con['rangos_valor']
         nombre_salida = con.get('nombre_salida', 'rosa')
 
         #2. Limpiar y transformar datos
-        df, tabla_frecuencias = transformar(df, dir_grados, radio, intervalos)
-        print(df.head)
+        df = transformar(df, dir_grados, periodo_pico, intervalos)
+        print(df.columns)
 
         #3. Plotear
         fig, axes = plt.subplots(2, 2, figsize=(10, 6))
         axes = axes.flatten()
 
-        get_polar_rose_plot(axes[0], df, r = radio, theta = "dir_rad", intervals = intervalos)
-        get_table_frequency(axes[3], tabla_frecuencias)
+        ## Altura significativa
+        get_table_frequency(axes[2], df)
+
+        ## Periodo pico
+        get_polar_rose_plot(axes[0], df, r = periodo_pico, theta = "dir_rad", intervals = intervalos)
+        get_histogram(axes[3], df[periodo_pico], bins=intervalos, xlabel=periodo_pico, title='Histograma de '+periodo_pico)
+        get_polar_rose_plot(axes[1], df, r = 'Significant height (Hm0)', theta = "dir_rad", intervals = intervalos)
 
         plt.tight_layout()
         plt.show()

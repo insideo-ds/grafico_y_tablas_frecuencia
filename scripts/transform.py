@@ -12,7 +12,7 @@ def transformar(df, direccion_grados, columna_valor, rangos_valor, nombre_salida
     if columna_valor not in df.columns:
         raise ValueError(f"Columna {columna_valor} no encontrada")
 
-    df_clean = df[[direccion_grados, columna_valor]].dropna()
+    df_clean = df[['Peak direction (DirTp)', 'Peak period (Tp)', 'Significant height (Hm0)', 'Error Code']].dropna()
     df_clean['dir_rad'] = np.radians(df_clean[direccion_grados])
 
     df_clean['sector_direccion'] = pd.cut(
@@ -21,17 +21,10 @@ def transformar(df, direccion_grados, columna_valor, rangos_valor, nombre_salida
         labels=CARDINALES,
         right=False
     )
-
     df_clean['rango_valor'] = pd.cut(
         df_clean[columna_valor],
         bins=rangos_valor,
         right=False
     )
 
-    tabla_frecuencias = pd.crosstab(
-        df_clean['sector_direccion'],
-        df_clean['rango_valor'],
-        normalize=True
-    ) * 100
-
-    return df_clean, tabla_frecuencias
+    return df_clean

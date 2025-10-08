@@ -109,12 +109,19 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=CARDINALES):
 
     ax.set_xticks(theta_centers)
     ax.set_xticklabels(cardinales)
-    ax.set_title('Rosa de Vientos', pad=20)
+    ax.set_title('Rosa', pad=20)
     ax.legend(bbox_to_anchor=(1.1, 1.0), title=f'Rangos de {r}')
 
     return ax
 
 def get_table_frequency(ax, tabla):
+
+    tabla = pd.crosstab(
+        tabla['sector_direccion'],
+        tabla['rango_valor'],
+        normalize=True
+    ) * 100
+
     """Crea la tabla de frecuencias en el eje especificado"""
     ax.axis('off')
     tabla_plot = ax.table(
@@ -130,7 +137,7 @@ def get_table_frequency(ax, tabla):
     ax.set_title('Tabla de Frecuencias (%)', pad=20)
 
 
-def show_histogram(ax, data, bins=10, xlabel=None, ylabel='Frequency', title=None, color='C0'):
+def get_histogram(ax, data, bins=10, xlabel=None, ylabel='Frequency', title=None, color='C0'):
     """Dibuja un histograma simple sobre el eje proporcionado.
 
     Parámetros
