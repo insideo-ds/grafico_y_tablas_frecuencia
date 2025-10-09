@@ -10,21 +10,21 @@ DIR16_LABELS = [
 ]
 
 CONFIG = [
-
     {
         'path': './in/ADCP1-olas invierno -2022.xlsx',
         'adcp': 'adcp1',
-        'hs_bins': [0.15, 0.2, 0.25, 0.3,0.4],
-        'tp_bins': [0, 10, 12, 14, 16,20]
+        'hs_bins': [0.15, 0.2, 0.25, 0.3, 0.4],
+        'tp_bins': [0, 10, 12, 14, 16, 20],
+        'report_title': 'Olas_ADCP1_invierno2022'
     },
-]
-
-"""     {
+    {
         'path': './in/ADCP2-Olas verano - 2023.xlsx',
         'adcp': 'adcp2',
         'hs_bins': [0.35, 0.4, 0.45, 0.6],
-        'tp_bins': [0, 10, 13, 16, 20]
-    }, """
+        'tp_bins': [0, 10, 13, 16, 20],
+        'report_title': 'Olas_ADCP2_verano2023'
+    }
+]
 
 """     {
         'path': './in/ADCP2_corrientes Verano 2023.xlsx',

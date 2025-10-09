@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from math import radians
 
-from constants import DIR16_LABELS
+from config import DIR16_LABELS
 
 def deg_to_dir16(deg_series: pd.Series) -> pd.Series:
     """

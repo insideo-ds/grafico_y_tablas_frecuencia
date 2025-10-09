@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from windrose import WindroseAxes
 
-from constants import DIR16_LABELS
+from config import DIR16_LABELS
 
 def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, normed=True):
     """Dibuja una rosa de vientos (barras polares apiladas) en el eje proporcionado.
@@ -317,9 +317,9 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
 
     return ax
 
-def get_polar_from_windrose(df, tp_bins):
-    ax = WindroseAxes.from_ax()
-    ax.set_xticklabels(('E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'))
-    ax.bar(df["dirtp_dgs"], df["tp_s"], normed=True, bins=tp_bins, opening=0.8, nsector=16, edgecolor='white')
-    ax.set_title("tp_s", fontsize=12, weight='bold')
-    ax.set_legend()
+def get_polar_from_windrose(fig, df, r, bins):
+    ax2 = WindroseAxes.from_ax(fig=fig)
+    ax2.set_xticklabels(('E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'))
+    ax2.bar(df["dirtp_dgs"], df['hs_m'], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
+    ax2.set_title(r, fontsize=12, weight='bold')
+    ax2.set_legend()
