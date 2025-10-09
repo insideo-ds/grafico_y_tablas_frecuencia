@@ -22,7 +22,23 @@ CONFIG = [
         'adcp': 'adcp2',
         'hs_bins': [0.35, 0.4, 0.45, 0.6],
         'tp_bins': [0, 10, 13, 16, 20],
-        'report_title': 'Olas_ADCP2_verano2023'
+        'report_title': 'Olas_ADCP2_verano2023',
+        'limpieza': 'olas'
+    },
+    {
+        'path': './in/ADCP3-Olas verano-2023.xlsx',
+        'adcp': 'adcp3',
+        'hs_bins': [0.3, 0.4, 0.5, 0.6, 0.8],
+        'tp_bins': [0, 10, 12, 14, 16, 20],
+        'report_title': 'Olas_ADCP3_verano2023',
+        'limpieza': 'olas'
+    },
+        {
+        'path': './in/ADCP3-Olas verano-2023.xlsx',
+        'adcp': 'adcp2',
+        'v_bins': [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+        'report_title': 'Olas_ADCP3_verano2023',
+        'limpieza': 'corrientes'
     }
 ]
 

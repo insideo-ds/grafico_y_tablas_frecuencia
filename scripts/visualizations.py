@@ -320,6 +320,6 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
 def get_polar_from_windrose(fig, df, r, bins):
     ax2 = WindroseAxes.from_ax(fig=fig)
     ax2.set_xticklabels(('E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'))
-    ax2.bar(df["dirtp_dgs"], df['hs_m'], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
+    ax2.bar(df["dirtp_dgs"], df[r], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
     ax2.set_title(r, fontsize=12, weight='bold')
     ax2.set_legend()
