@@ -43,7 +43,6 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
 
     df = df[df["dirtp_dgs"] >= 0]  # remove invalid negative directions
 
-
     # create radians column for direction using the coerced numeric degrees
     df['dirtp_rad'] = np.radians(df["dirtp_dgs"]) if "dirtp_dgs" in df.columns else np.nan
 
@@ -57,6 +56,46 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     df['dir_bins16'] = deg_to_dir16(df["dirtp_dgs"])
     df['tp_bins'] = pd.cut(df["tp_s"],bins=tp_bins,right=False) #left-inclusive and right-exclusive
     df['hs_bins'] = pd.cut(df["hs_m"],bins=hs_bins,right=False) #left-inclusive and right-exclusive
+
+    return df
+
+def transformar_corrientes(df):
+    df = df.copy()
+    print(df.columns)
+    cols = {
+        'DateTime': 'date',
+        'Speed#1(1.4m)': 'speed_1.4',
+        'Dir#1(1.4m)': 'dir_1.4',
+        'Speed#5(5.4m)': 'speed_5.4',
+        'Dir#5(5.4m)': 'dir_5.4',
+        'Speed#10(10.4m)': 'speed_10.4',
+        'Dir#10(10.4m)': 'dir_10.4'
+    }
+    df.columns = df.columns.str.strip()
+    print(df.columns)
+    df.rename(columns = cols, inplace = True)
+    print(df.columns)
+
+
+    df["date"] = pd.to_datetime(df["date"])
+    # Coerce key numeric columns to numeric values; invalid parses become NaN
+    for _col in ("speed_1.4", "dir_1.4", "speed_5.4", "dir_5.4", "speed_10.4", "dir_10.4"):
+        if _col in df.columns:
+            df[_col] = pd.to_numeric(df[_col], errors="coerce")
+
+    # select only the columns we need for downstream steps
+    df = df[["date", "speed_1.4", "dir_1.4", "speed_5.4", "dir_5.4", "speed_10.4", "dir_10.4"]]
+
+    # create radians column for direction using the coerced numeric degrees
+    df['speed_1.4_ms'] = df["speed_1.4"]*100 if "speed_1.4" in df.columns else np.nan
+    df['speed_5.4_ms'] = df["speed_5.4"]*100 if "speed_5.4" in df.columns else np.nan
+    df['speed_10.4_ms'] = df["speed_10.4"]*100 if "speed_10.4" in df.columns else np.nan
+    df['dir_1.4_rad'] = np.radians(df["dir_1.4"]) if "dir_1.4" in df.columns else np.nan
+    df['dir_5.4_rad'] = np.radians(df["dir_5.4"]) if "dir_5.4" in df.columns else np.nan
+    df['dir_10.4_rad'] = np.radians(df["dir_10.4"]) if "dir_10.4" in df.columns else np.nan
+    df['dir_1.4_bins16'] = deg_to_dir16(df["dir_1.4"])
+    df['dir_5.4_bins16'] = deg_to_dir16(df["dir_5.4"])
+    df['dir_10.4_bins16'] = deg_to_dir16(df["dir_10.4"])
 
     return df
 

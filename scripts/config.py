@@ -15,7 +15,8 @@ CONFIG = [
         'adcp': 'adcp1',
         'hs_bins': [0.15, 0.2, 0.25, 0.3, 0.4],
         'tp_bins': [0, 10, 12, 14, 16, 20],
-        'report_title': 'Olas_ADCP1_invierno2022'
+        'report_title': 'Olas_ADCP1_invierno2022',
+        'limpieza': 'olas'
     },
     {
         'path': './in/ADCP2-Olas verano - 2023.xlsx',
@@ -34,10 +35,10 @@ CONFIG = [
         'limpieza': 'olas'
     },
         {
-        'path': './in/ADCP3-Olas verano-2023.xlsx',
+        'path': './in/ADCP2_corrientes Verano 2023.xlsx',
         'adcp': 'adcp2',
         'v_bins': [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-        'report_title': 'Olas_ADCP3_verano2023',
+        'report_title': 'Corrientes_ADCP2_verano2023',
         'limpieza': 'corrientes'
     }
 ]
