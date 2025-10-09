@@ -46,7 +46,10 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     df.columns = df.columns.str.strip()
     df.rename(columns = cols, inplace = True)
     df = df[df["error_code"] == 0]
-    df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+    if "Fecha y Hora" in df.columns:
+        df["date"] = pd.to_datetime(df["Fecha y Hora"])
+    else:
+        df["date"] = pd.to_datetime(df[["year", "month", "day"]])
     df['dirtp_rad'] = np.radians(df["dirtp_dgs"]) # create radians column for direction
 
     df = df[["date", "dirtp_dgs", "dirtp_rad", "tp_s", "hs_m"]]

@@ -10,14 +10,21 @@ DIR16_LABELS = [
 ]
 
 CONFIG = [
+
     {
-        'path': './in/ADCP2-Olas verano - 2023.xlsx',
-        'direccion_grados': 'Peak direction (DirTp)',
-        'columna_valor': 'Peak period (Tp)',
-        'rangos_valor': [0, 5, 10, 15, 20, 25],
-        'nombre_salida': 'Olas_DirTp_Tp'
+        'path': './in/ADCP1-olas invierno -2022.xlsx',
+        'adcp': 'adcp1',
+        'hs_bins': [0.15, 0.2, 0.25, 0.3,0.4],
+        'tp_bins': [0, 10, 12, 14, 16,20]
     },
 ]
+
+"""     {
+        'path': './in/ADCP2-Olas verano - 2023.xlsx',
+        'adcp': 'adcp2',
+        'hs_bins': [0.35, 0.4, 0.45, 0.6],
+        'tp_bins': [0, 10, 13, 16, 20]
+    }, """
 
 """     {
         'path': './in/ADCP2_corrientes Verano 2023.xlsx',
