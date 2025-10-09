@@ -5,7 +5,7 @@ from windrose import WindroseAxes
 
 from constants import DIR16_LABELS
 
-def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS):
+def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, normed=True):
     """Dibuja una rosa de vientos (barras polares apiladas) en el eje proporcionado.
 
     Comportamiento clave
@@ -90,6 +90,12 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS):
         bins=[theta_edges, intervals]
     )
 
+    # If requested, convert counts to percentage of total observations
+    if normed:
+        total = hist.sum()
+        if total > 0:
+            hist = hist / total * 100.0
+
     theta_centers = (theta_edges[:-1] + theta_edges[1:]) / 2
 
     colores = plt.cm.viridis(np.linspace(0, 1, bins_valor))
@@ -112,6 +118,15 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS):
     ax.set_xticklabels(cardinales)
     ax.set_title('Rosa', pad=20)
     ax.legend(bbox_to_anchor=(1.1, 1.0), title=f'Rangos de {r}')
+
+    # Format radial tick labels as percentages when normed
+    try:
+        if normed:
+            yticks = ax.get_yticks()
+            ax.set_yticklabels([f"{t:.1f}%" for t in yticks])
+    except Exception:
+        # If tick formatting fails for some backends, ignore silently
+        pass
 
     return ax
 
@@ -167,7 +182,7 @@ def get_table_frequency(ax, tabla, eje_y, eje_x, porcentaje=True):
     titulo = f'Tabla de Frecuencias {sufijo}: {eje_y} vs {eje_x}'
     ax.set_title(titulo, pad=10, fontsize=12)
 
-def get_histogram(ax, data, bins=10, xlabel=None, ylabel='Frequency', title=None, color='C0'):
+def get_histogram(ax, data, bins, xlabel=None, ylabel='Frequency', title=None, color='C0', porcentaje=False, annotate=False):
     """Dibuja un histograma simple sobre el eje proporcionado.
 
     Parámetros
@@ -200,11 +215,104 @@ def get_histogram(ax, data, bins=10, xlabel=None, ylabel='Frequency', title=None
     """
 
     ax.cla()
-    ax.hist(data, bins=bins, color=color, edgecolor='black') #Este método bin la data en x y cuenta el número de ocurrencias en y.
+    # Remove NaNs from data for counting
+    data_arr = pd.Series(data).dropna().values
+
+    if porcentaje:
+        # weights so that sum of bar heights equals 100 (percentage)
+        if data_arr.size == 0:
+            weights = None
+        else:
+            weights = np.ones_like(data_arr, dtype=float) / data_arr.size * 100.00
+        n, bins_out, patches = ax.hist(data_arr, bins=bins, color=color, edgecolor='black', weights=weights)
+        # adjust ylabel if not explicitly provided
+        if ylabel == 'Frequency':
+            ylabel = 'Frequency (%)'
+    else:
+        n, bins_out, patches = ax.hist(data_arr, bins=bins, color=color, edgecolor='black') #Este método bin la data en x y cuenta el número de ocurrencias en y.
     if xlabel:
         ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if title:
         ax.set_title(title)
     ax.grid(True, linestyle='--', alpha=0.4)
+    # Format y-ticks as percentages when porcentaje=True
+    if porcentaje:
+        try:
+            yt = ax.get_yticks()
+            ax.set_yticklabels([f"{y:.1f}%" for y in yt])
+        except Exception:
+            pass
+    # Annotate bars with values above each bin if requested
+    if annotate:
+        try:
+            for patch in patches:
+                h = patch.get_height()
+                if h <= 0:
+                    continue
+                x = patch.get_x() + patch.get_width() / 2
+                if porcentaje:
+                    label = f"{h:.2f}%"
+                else:
+                    # show integer if close to int, otherwise one decimal
+                    if abs(h - round(h)) < 0.01:
+                        label = f"{int(round(h))}"
+                    else:
+                        label = f"{h:.1f}"
+                ax.text(x, h, label, ha='center', va='bottom', fontsize=8)
+        except Exception:
+            # don't fail drawing if annotation causes issues
+            pass
+    return ax
+
+def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
+    """Simple time-series plotter.
+
+    Requisitos mínimos: debe recibir `ax`, `df`, `x_col`, `y_cols`, `xlabel`,
+    `ylabel` y `title` (todos obligatorios según lo solicitado).
+
+    - x_col: nombre de la columna datetime en `df`.
+    - y_cols: nombre de columna (str) o lista de columnas a graficar.
+    """
+
+    # Validate required parameters
+    if x_col is None or y_cols is None or xlabel is None or ylabel is None or title is None:
+        raise ValueError("x_col, y_cols, xlabel, ylabel y title son parámetros obligatorios")
+
+    if x_col not in df.columns:
+        raise KeyError(f"Columna de tiempo '{x_col}' no encontrada en el DataFrame")
+
+    # Prepare dataframe
+    df_local = df.copy()
+    df_local[x_col] = pd.to_datetime(df_local[x_col], errors='coerce', dayfirst=True, infer_datetime_format=True)
+
+    if isinstance(y_cols, str):
+        y_cols = [y_cols]
+
+    for y in y_cols:
+        if y not in df_local.columns:
+            raise KeyError(f"Columna '{y}' no encontrada en el DataFrame")
+
+    # Drop rows where x_col is NaT
+    plot_df = df_local[[x_col] + y_cols].dropna()
+
+    # Sort by time
+    plot_df = plot_df.sort_values(by=x_col)
+
+    ax.cla()
+    for y in y_cols:
+        ax.plot(plot_df[x_col], plot_df[y], label=y)
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(True, linestyle='--', alpha=0.4)
+    ax.legend()
+
+    try:
+        fig = ax.get_figure()
+        fig.autofmt_xdate()
+    except Exception:
+        pass
+
     return ax

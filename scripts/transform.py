@@ -57,3 +57,69 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     df['hs_bins'] = pd.cut(df["hs_m"],bins=hs_bins,right=False) #left-inclusive and right-exclusive
 
     return df
+
+def get_bars(ax, tabla, eje_x, porcentaje=True, color='C0'):
+    """
+    Dibuja un gráfico de barras categórico basado en los totales de una sola columna.
+
+    Parámetros
+    ----------
+    ax : matplotlib.axes.Axes
+        Eje donde se dibuja el gráfico.
+    tabla : pandas.DataFrame
+        DataFrame con los datos originales.
+    eje_x : str
+        Nombre de la columna categórica para el eje X.
+    porcentaje : bool, opcional
+        Si es True, muestra porcentajes sobre el total.
+    color : str, opcional
+        Color de las barras.
+
+    Retorna
+    -------
+    matplotlib.axes.Axes
+        El eje modificado.
+    """
+    ax.clear()
+
+    # Ocurrencias por categoría
+    conteos = tabla[eje_x].value_counts(sort=False)
+
+    # Normalización
+    if porcentaje:
+        total = conteos.sum()
+        conteos = conteos / total * 100
+        ax.set_ylim(0, 100)
+
+    # Redondear
+    conteos = conteos.round(2)
+
+    # Gráfico
+    etiquetas = conteos.index.tolist()
+    valores = conteos.values
+    posiciones = range(len(etiquetas))
+
+    barras = ax.bar(posiciones, valores, color=color, edgecolor='black')
+
+    # Etiquetas encima de cada barra
+    for barra, valor in zip(barras, valores):
+        texto = f"{valor:.2f}%" if porcentaje else f"{valor:.0f}"
+        ax.text(
+            barra.get_x() + barra.get_width() / 2,
+            barra.get_height(),
+            texto,
+            ha='center',
+            va='bottom',
+            fontsize=8
+        )
+
+    ax.set_xticks(posiciones)
+    ax.set_xticklabels(etiquetas, rotation=45, ha='right')
+
+    ax.set_xlabel(eje_x)
+    ax.set_ylabel('Porcentaje (%)' if porcentaje else 'Frecuencia')
+    sufijo = "(%)" if porcentaje else "(conteos)"
+    ax.set_title(f'Totales por {eje_x} {sufijo}', pad=10)
+
+    ax.grid(True, linestyle='--', alpha=0.4)
+    return ax
