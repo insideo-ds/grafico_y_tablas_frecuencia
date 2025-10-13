@@ -82,6 +82,7 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, no
     width = 2 * np.pi / SECTORES
 
     theta_edges = np.linspace(-width / 2, 2 * np.pi - width / 2, SECTORES + 1)
+    #print(theta_edges)
 
     direcciones_mod = np.mod(theta_vals, 2 * np.pi)
     hist, theta_bins, value_bins = np.histogram2d(
@@ -113,6 +114,7 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, no
             label=f'{intervals[i]}-{intervals[i+1]}'
         )
         bottom += hist[:, i]
+        #print(bottom, width, colores[i], theta_centers)
 
     ax.set_xticks(theta_centers)
     ax.set_xticklabels(cardinales)
@@ -317,9 +319,75 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
 
     return ax
 
-def get_polar_from_windrose(fig, df, r, bins):
+def get_polar_from_windrose(fig, df, r, theta, bins):
     ax2 = WindroseAxes.from_ax(fig=fig)
     ax2.set_xticklabels(('E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'))
-    ax2.bar(df["dirtp_dgs"], df[r], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
+    ax2.bar(df[theta], df[r], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
     ax2.set_title(r, fontsize=12, weight='bold')
     ax2.set_legend()
+
+def get_bars(ax, tabla, eje_x, porcentaje=True, color='C0'):
+    """
+    Dibuja un gráfico de barras categórico basado en los totales de una sola columna.
+
+    Parámetros
+    ----------
+    ax : matplotlib.axes.Axes
+        Eje donde se dibuja el gráfico.
+    tabla : pandas.DataFrame
+        DataFrame con los datos originales.
+    eje_x : str
+        Nombre de la columna categórica para el eje X.
+    porcentaje : bool, opcional
+        Si es True, muestra porcentajes sobre el total.
+    color : str, opcional
+        Color de las barras.
+
+    Retorna
+    -------
+    matplotlib.axes.Axes
+        El eje modificado.
+    """
+    ax.clear()
+
+    # Ocurrencias por categoría
+    conteos = tabla[eje_x].value_counts(sort=False)
+
+    # Normalización
+    if porcentaje:
+        total = conteos.sum()
+        conteos = conteos / total * 100
+        ax.set_ylim(0, 100)
+
+    # Redondear
+    conteos = conteos.round(2)
+
+    # Gráfico
+    etiquetas = conteos.index.tolist()
+    valores = conteos.values
+    posiciones = range(len(etiquetas))
+
+    barras = ax.bar(posiciones, valores, color=color, edgecolor='black')
+
+    # Etiquetas encima de cada barra
+    for barra, valor in zip(barras, valores):
+        texto = f"{valor:.2f}%" if porcentaje else f"{valor:.0f}"
+        ax.text(
+            barra.get_x() + barra.get_width() / 2,
+            barra.get_height(),
+            texto,
+            ha='center',
+            va='bottom',
+            fontsize=8
+        )
+
+    ax.set_xticks(posiciones)
+    ax.set_xticklabels(etiquetas, rotation=45, ha='right')
+
+    ax.set_xlabel(eje_x)
+    ax.set_ylabel('Porcentaje (%)' if porcentaje else 'Frecuencia')
+    sufijo = "(%)" if porcentaje else "(conteos)"
+    ax.set_title(f'Totales por {eje_x} {sufijo}', pad=10)
+
+    ax.grid(True, linestyle='--', alpha=0.4)
+    return ax
