@@ -14,20 +14,13 @@ def deg_to_dir16(deg_series: pd.Series) -> pd.Series:
     out = idx.map(lambda i: DIR16_LABELS[int(i)] if pd.notna(i) else pd.NA)
     return pd.Categorical(out, categories=DIR16_LABELS, ordered=True)
 
-def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45, 0.6]):
+def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45, 0.6], cols_rename=None):
+    '''La data de velocidad debe estar en m/s. Se convierte a cm/s'''
     df = df.copy()
-    cols = {
-        'Month': 'month',
-        'Day': 'day',
-        'Year': 'year',
-        'Significant height (Hm0)': 'hs_m',
-        'Maximum height (Hmax)': 'hmax_m',
-        'Peak direction (DirTp)': 'dirtp_dgs',
-        'Peak period (Tp)': 'tp_s',
-        'Error Code': 'error_code'
-    }
     df.columns = df.columns.str.strip()
-    df.rename(columns = cols, inplace = True)
+
+    if cols_rename:
+        df.rename(columns = cols_rename, inplace = True)
 
     if "error_code" in df.columns:
         df = df[df["error_code"] == 0]
@@ -48,7 +41,7 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     df['dirtp_rad'] = np.radians(df["dirtp_dgs"]) if "dirtp_dgs" in df.columns else np.nan
 
     # select only the columns we need for downstream steps
-    df = df[["date", "dirtp_dgs", "dirtp_rad", "tp_s", "hs_m", "hmax_m"]]
+    #df = df[["date", "dirtp_dgs", "dirtp_rad", "tp_s", "hs_m", "hmax_m"]]
 
     # Drop rows that have missing values in any of the required measurement columns.
     # Use assignment (avoid inplace) and copy to ensure a clean DataFrame view.
@@ -61,7 +54,7 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     return df
 
 def transformar_corrientes(df, cols_rename, cols_drop, cols_capas):
-
+    '''La data de velocidad debe estar en m/s. Se convierte a cm/s'''
     dir_fondo = cols_capas.get('dir_fondo', 'dir_fondo')
     speed_fondo = cols_capas.get('speed_fondo', 'speed_fondo')
     dir_medio = cols_capas.get('dir_medio', 'dir_medio')
@@ -135,3 +128,57 @@ def calcular_promedios_capas(df, u_cols, v_cols):
     df[f'speed_promedio_{suffix}'] = np.sqrt(df[f'u_promedio_{suffix}']**2 + df[f'v_promedio_{suffix}']**2)
     df[f'dir_promedio_rad_{suffix}'] = np.arctan2(df[f'u_promedio_{suffix}'], df[f'v_promedio_{suffix}']) # Elige el cuadrante correcto.
     df[f'dir_promedio_dgs_{suffix}'] = (np.degrees(df[f'dir_promedio_rad_{suffix}']) + 360) % 360 # Convertir a grados y ajustar a [0, 360)
+
+def transformar_sedimentos(df, cols_rename, cols_drop = None):
+
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+    if cols_drop:
+        df.drop(columns = cols_drop, errors='ignore', inplace=True)
+    df.rename(columns = cols_rename, inplace = True)
+    df["date"] = pd.to_datetime(df["date"])
+
+    malla_cols = [col for col in df.columns if "malla_ret" in col] # o malla_cols = df.columns[df.columns.str.contains('malla_ret', case=False)]
+
+    # Coerce key numeric columns to numeric values; invalid parses become NaN
+    for _col in malla_cols:
+        if _col in df.columns:
+            df[_col] = pd.to_numeric(df[_col], errors="coerce").mask(lambda x: x < 0)
+    # Drop rows that have missing values in any of the required measurement columns.
+    df = df.dropna(subset=malla_cols).copy()
+
+    #Enriquecimiento
+    df["total_retenido_g"] = df[malla_cols].sum(axis=1)
+    # Calcular porcentaje retenido por malla
+    for col in malla_cols:
+        df[f"%_{col}"] = (df[col] / df["peso_muestra_g"]) * 100
+
+    # Calcular % retenido acumulado
+    pct_cols = [f"%_{col}" for col in malla_cols]
+    df["%_retenido_Acumulado"] = df[pct_cols].cumsum(axis=1).iloc[:, -1]
+
+    # Calcular % que pasa por cada malla
+    for col in malla_cols:
+        df[f"%_pasa_{col}"] = 100 - df[[f"%_{c}" for c in malla_cols]].cumsum(axis=1)[f"%_{col}"]
+
+    df["arena muy gruesa"] = df["%_malla_ret_10g"]
+    df["arena gruesa"] = df["%_malla_ret_18g"]
+    df["arena fina"] = df["%_malla_ret_35g"] + df["%_malla_ret_50g"]
+    df["arena muy fina"] = df["%_malla_ret_100g"] + df["%_malla_ret_200g"]
+    df["limo"] = df["%_pasa_malla_ret_200g"] #incluye malla 400
+    #df.drop(subset=malla_cols)
+
+    return df
+
+"""
+| Malla               | Representa el material que...           | Tamaño aproximado |
+| ------------------- | --------------------------------------- | ----------------- |
+| **#10**             | Es más grueso que #10 (no pasa por #10) | > 2 mm            |
+| **#18**             | Pasa por #10 pero no por #18            | 1.0 – 2.0 mm      |
+| **#35**             | Pasa por #18 pero no por #35            | 0.5 – 1.0 mm      |
+| **#50**             | Pasa por #35 pero no por #50            | 0.3 – 0.5 mm      |
+| **#100**            | Pasa por #50 pero no por #100           | 0.15 – 0.3 mm     |
+| **#200**            | Pasa por #100 pero no por #200          | 0.075 – 0.15 mm   |
+| **Fondo (bandeja)** | Pasa por #200                           | < 0.075 mm        |
+
+"""

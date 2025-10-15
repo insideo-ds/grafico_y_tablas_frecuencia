@@ -1,14 +1,15 @@
 import os
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from visualizations import get_polar_rose_plot, get_table_frequency, get_time_series, get_polar_from_windrose, get_bars, get_histogram
+import pandas as pd
+from visualizations import get_bar_x_estacion, get_occurrence_table, get_polar_rose_plot, get_table_frequency, get_table_statistics_summary, get_time_series, get_polar_from_windrose, get_bars, get_histogram
 
 # Optionally show the main plot interactively (comment out to run headless)
 # plt.show()
 
 def report_olas(df, con):
     report_title = con.get('report_title', 'report')
-    adcp = con.get('adcp', 'adcp')
+    estacion = con.get('estacion', 'estacion')
     hs_bins = con.get('hs_bins', [0, 0.35, 0.4, 0.45, 0.6])
     tp_bins = con.get('tp_bins', [0, 10, 13, 16, 20])
 
@@ -25,9 +26,11 @@ def report_olas(df, con):
     get_time_series(ax_hs_ts, df, 'date', 'hs_m', 'Fecha', 'hs_m', 'Serie temporal de hs_m')
 
     # H_max: serie temporal máximos
-    fig_hs_max_ts, ax_hs_max_ts = plt.subplots(figsize=(10, 4))
-    get_time_series(ax_hs_max_ts, df, 'date', 'hmax_m', 'Fecha', 'hmax_m', 'Serie temporal de hmax_m')
-
+    if 'hmax_m' in df.columns:
+        fig_hs_max_ts, ax_hs_max_ts = plt.subplots(figsize=(10, 4))
+        get_time_series(ax_hs_max_ts, df, 'date', 'hmax_m', 'Fecha', 'hmax_m', 'Serie temporal de hmax_m')
+    else:
+        fig_hs_max_ts = None
     # HS: barras
     fig_hs_bars, ax_hs_bars = plt.subplots(figsize=(8, 6))
     get_bars(ax_hs_bars, df, eje_x='hs_bins')
@@ -41,8 +44,8 @@ def report_olas(df, con):
     get_polar_from_windrose(fig_hs_rose_wr, df, 'hs_m', 'dirtp_dgs', hs_bins)
 
     # HS: tabla
-    fig_hs_table, ax_hs_table = plt.subplots(figsize=(8.27, 11.69))
-    get_table_frequency(ax_hs_table, df, eje_y='dir_bins16', eje_x='hs_bins')
+    fig_hs_table, ax_hs_table = plt.subplots()
+    get_table_frequency(fig_hs_table, ax_hs_table, df, eje_y='dir_bins16', eje_x='hs_bins')
 
     # TP: serie temporal
     fig_tp_ts, ax_tp_ts = plt.subplots(figsize=(10, 4))
@@ -61,12 +64,19 @@ def report_olas(df, con):
     get_polar_from_windrose(fig_tp_rose_wr, df, 'tp_s', 'dirtp_dgs', tp_bins)
 
     # TP: tabla
-    fig_tp_table, ax_tp_table = plt.subplots(figsize=(8.27, 11.69))
-    get_table_frequency(ax_tp_table, df, eje_y='dir_bins16', eje_x='tp_bins')
+    fig_tp_table, ax_tp_table = plt.subplots()
+    get_table_frequency(fig_tp_table, ax_tp_table, df, eje_y='dir_bins16', eje_x='tp_bins')
 
     # HS y TP: tabla
-    fig_hs_tp_table, ax_hs_tp_table = plt.subplots(figsize=(8.27, 11.69))
-    get_table_frequency(ax_hs_tp_table, df, eje_y='hs_bins', eje_x='tp_bins')
+    fig_hs_tp_table, ax_hs_tp_table = plt.subplots()
+    get_table_frequency(fig_hs_tp_table, ax_hs_tp_table, df, eje_y='hs_bins', eje_x='tp_bins')
+
+    fig_table_describe, ax_table_describe = plt.subplots()
+    get_table_statistics_summary(fig_table_describe, ax_table_describe, df, colnames=['hs_m', 'dirtp_dgs', 'tp_s'])
+
+    fig_table_ocurrence, ax_table_ocurrence = plt.subplots()
+    get_occurrence_table(fig_table_ocurrence, ax_table_ocurrence, df, precision = 2, export_xlsx = True, estacion = estacion)
+
 
     # Save plots and tables to a multi-page PDF
     out_dir = os.path.join('out')
@@ -77,7 +87,7 @@ def report_olas(df, con):
         # Title / cover page for this config
         try:
             fig_title = plt.figure(figsize=(8.27, 11.69))
-            fig_title.clf()
+            fig_title.clear()
             fig_title.text(0.5, 0.5, report_title, ha='center', va='center', fontsize=24, weight='bold')
             pdf.savefig(fig_title)
             plt.close(fig_title)
@@ -87,10 +97,10 @@ def report_olas(df, con):
         # DIR section cover
         try:
             fig_dir_title = plt.figure(figsize=(8.27, 11.69))
-            fig_dir_title.clf()
+            fig_dir_title.clear()
             dir_title_text = f"DIR"
             fig_dir_title.text(0.5, 0.6, dir_title_text, ha='center', va='center', fontsize=22, weight='bold')
-            fig_dir_title.text(0.5, 0.45, f"{adcp}", ha='center', va='center', fontsize=12)
+            fig_dir_title.text(0.5, 0.45, f"{estacion}", ha='center', va='center', fontsize=12)
             pdf.savefig(fig_dir_title)
             plt.close(fig_dir_title)
         except Exception:
@@ -108,10 +118,10 @@ def report_olas(df, con):
         # HS section cover
         try:
             fig_hs_title = plt.figure(figsize=(8.27, 11.69))
-            fig_hs_title.clf()
+            fig_hs_title.clear()
             hs_title_text = f"HS"
             fig_hs_title.text(0.5, 0.6, hs_title_text, ha='center', va='center', fontsize=22, weight='bold')
-            fig_hs_title.text(0.5, 0.45, f"{adcp}", ha='center', va='center', fontsize=12)
+            fig_hs_title.text(0.5, 0.45, f"{estacion}", ha='center', va='center', fontsize=12)
             pdf.savefig(fig_hs_title)
             plt.close(fig_hs_title)
         except Exception:
@@ -129,17 +139,17 @@ def report_olas(df, con):
         # TP section cover
         try:
             fig_tp_title = plt.figure(figsize=(8.27, 11.69))
-            fig_tp_title.clf()
+            fig_tp_title.clear()
             tp_title_text = f"TP"
             fig_tp_title.text(0.5, 0.6, tp_title_text, ha='center', va='center', fontsize=22, weight='bold')
-            fig_tp_title.text(0.5, 0.45, f"{adcp}", ha='center', va='center', fontsize=12)
+            fig_tp_title.text(0.5, 0.45, f"{estacion}", ha='center', va='center', fontsize=12)
             pdf.savefig(fig_tp_title)
             plt.close(fig_tp_title)
         except Exception:
             pass
 
         # Save TP figures
-        for fig_obj in [fig_tp_ts, fig_tp_bars, fig_tp_rose, fig_tp_rose_wr, fig_tp_table, fig_hs_tp_table]:
+        for fig_obj in [fig_tp_ts, fig_tp_bars, fig_tp_rose, fig_tp_rose_wr, fig_tp_table, fig_hs_tp_table, fig_table_describe, fig_table_ocurrence]:
             try:
                 fig_obj.tight_layout()
             except Exception:
@@ -167,7 +177,6 @@ def report_corrientes(df, con):
     # Calibración
     dir_cols = df.columns[df.columns.str.contains('dir', case=False) & ~df.columns.str.contains('_')]
     speed_cols = df.columns[df.columns.str.contains('speed', case=False) & ~df.columns.str.contains('_')]
-    print(dir_cols)
     suffix = len(dir_cols)
     fig_dir_ts, ax_dp_ts = plt.subplots(figsize=(10, 4))
     get_time_series(ax_dp_ts, df, 'date', f'dir_promedio_dgs_{suffix}', 'Fecha', 'dir_promedio_dgs', 'Serie temporal de dir_promedio_dgs')
@@ -198,7 +207,7 @@ def report_corrientes(df, con):
         # Title / cover page for this config
         try:
             fig_title = plt.figure(figsize=(8.27, 11.69))
-            fig_title.clf()
+            fig_title.clear()
             fig_title.text(0.5, 0.5, report_title, ha='center', va='center', fontsize=24, weight='bold')
             pdf.savefig(fig_title)
             plt.close(fig_title)
@@ -207,6 +216,65 @@ def report_corrientes(df, con):
 
         # Save HS figures
         for fig_obj in [fig_sup_rose_wr, fig_sup_rose, fig_medio_rose, fig_fondo_rose, fig_dir_ts, fig_v_ts, fig_promedio_rose, fig_promedio_rose_3, fig_resumen_rose]:
+            try:
+                fig_obj.tight_layout()
+            except Exception:
+                pass
+            pdf.savefig(fig_obj)
+            plt.close(fig_obj)
+
+def report_sedimentos(df, con):
+    report_title = con.get('report_title', 'report')
+
+    # histograma
+    rows = len(df)
+    height_per_plot = 6
+    fig_bar_sedimentos, ax_bar_sedimentos = plt.subplots(nrows=rows, ncols=1, figsize=(8, height_per_plot*rows))
+
+    cols = ['date', 'estacion', 'arena muy gruesa', 'arena gruesa', 'arena fina', 'arena muy fina', 'limo']
+    df = df.copy()[cols].reset_index() # añade la columna index
+
+    df = pd.melt(
+        df,
+        id_vars=['index', 'date','estacion'],              # columns to keep fixed
+        var_name='fraccion',             # name of new "variable" column
+        value_name='porcentaje'          # name of new "value" column
+    )
+
+    print(df.head())
+    for idx in range(rows):
+        df_est = df[df['index'] == idx]
+        get_bar_x_estacion(ax_bar_sedimentos[idx], df_est["fraccion"], df_est["porcentaje"])
+
+    # Promedio por estación
+    #df_mean = df.groupby('estacion')[cols].mean() #se agrupa para el ploteo
+    #print(df_mean)
+
+    #fig_bar_sedimentos, ax_bar_sedimentos = plt.subplots()
+    # Crear gráfico de barras
+    #df_mean.plot(kind='bar', figsize=(8, 6), ax=ax_bar_sedimentos)
+    #ax_bar_sedimentos.set_ylabel('%')
+    #ax_bar_sedimentos.set_title('Distribución granulométrica por estación') #apiladas, stacked=True
+    #ax_bar_sedimentos.legend(title='Fracción', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    # Save plots and tables to a multi-page PDF
+    out_dir = os.path.join('out')
+    os.makedirs(out_dir, exist_ok=True)
+    pdf_path = os.path.join(out_dir, f"{report_title}.pdf")
+
+    with PdfPages(pdf_path) as pdf:
+        # Title / cover page for this config
+        try:
+            fig_title = plt.figure(figsize=(8.27, 11.69))
+            fig_title.clear()
+            fig_title.text(0.5, 0.5, report_title, ha='center', va='center', fontsize=24, weight='bold')
+            pdf.savefig(fig_title)
+            plt.close(fig_title)
+        except Exception:
+            pass
+
+        # Save figures
+        for fig_obj in [fig_bar_sedimentos]:
             try:
                 fig_obj.tight_layout()
             except Exception:

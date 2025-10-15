@@ -132,7 +132,7 @@ def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, no
 
     return ax
 
-def get_table_frequency(ax, tabla, eje_y, eje_x, porcentaje=True):
+def get_table_frequency(fig, ax, tabla, eje_y, eje_x, porcentaje=True):
     """
     Dibuja una tabla de frecuencias entre dos columnas categóricas.
 
@@ -163,22 +163,26 @@ def get_table_frequency(ax, tabla, eje_y, eje_x, porcentaje=True):
 
     # Preparar datos para la tabla
     cell_text = tabla_freq.values
-    row_labels = tabla_freq.index.tolist()
-    col_labels = tabla_freq.columns.tolist()
+    row_labels = tabla_freq.index #.tolist() Solo se necesita .tolist si se están modificando o concatenando los labels antes del ploteo.
+    col_labels = tabla_freq.columns #.tolist()
 
     # Dibujar tabla
+    # hide axes
+    fig.patch.set_visible(False)
     ax.axis('off')
-    tabla_plot = ax.table(
+    ax.axis('tight')
+
+    table = ax.table(
         cellText=cell_text,
         rowLabels=row_labels,
         colLabels=col_labels,
         cellLoc='center',
         loc='center',
-        bbox=[0, 0, 1, 1]
+        #bbox=[0, 0, 1, 1]
     )
-    tabla_plot.auto_set_font_size(False)
-    tabla_plot.set_fontsize(10)
-    tabla_plot.scale(1.2, 1.5)
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1.2, 1.2)
 
     sufijo = "(%)" if porcentaje else "(conteos)"
     titulo = f'Tabla de Frecuencias {sufijo}: {eje_y} vs {eje_x}'
@@ -326,7 +330,7 @@ def get_polar_from_windrose(fig, df, r, theta, bins):
     ax2.set_title(r, fontsize=12, weight='bold')
     ax2.set_legend()
 
-def get_bars(ax, tabla, eje_x, porcentaje=True, color='C0'):
+def get_bars(ax, df, eje_x, porcentaje=True, color='C0'):
     """
     Dibuja un gráfico de barras categórico basado en los totales de una sola columna.
 
@@ -351,7 +355,7 @@ def get_bars(ax, tabla, eje_x, porcentaje=True, color='C0'):
     ax.clear()
 
     # Ocurrencias por categoría
-    conteos = tabla[eje_x].value_counts(sort=False)
+    conteos = df[eje_x].value_counts(sort=False)
 
     # Normalización
     if porcentaje:
@@ -385,9 +389,67 @@ def get_bars(ax, tabla, eje_x, porcentaje=True, color='C0'):
     ax.set_xticklabels(etiquetas, rotation=45, ha='right')
 
     ax.set_xlabel(eje_x)
-    ax.set_ylabel('Porcentaje (%)' if porcentaje else 'Frecuencia')
+    ax.set_ylabel('Frecuencia (%)' if porcentaje else 'Frecuencia')
     sufijo = "(%)" if porcentaje else "(conteos)"
     ax.set_title(f'Totales por {eje_x} {sufijo}', pad=10)
 
     ax.grid(True, linestyle='--', alpha=0.4)
     return ax
+
+def get_table_statistics_summary(fig, ax, df, colnames):
+    # hide axes
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+    summary = df[colnames].describe().round(2)
+    ax.table(cellText=summary.values, rowLabels = summary.index, colLabels=summary.columns, loc='center')
+
+    return ax
+
+def get_occurrence_table(fig, ax, df: pd.DataFrame,
+        hs_col: str = "hs_m",
+        tp_col: str = "tp_s",
+        dp_col: str = "dirtp_dgs",
+        hs_bin: str = "hs_bins",
+        tp_bin: str = "tp_bins",
+        dir_bin: str = "dir_bins16",
+        precision=2,
+        export_xlsx = False,
+        estacion = "estacion"):
+
+    # hide axes
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+
+    df = df.copy()
+    grp = df.groupby([dir_bin, hs_bin, tp_bin], observed=True).agg(
+        Dp_mean=(dp_col, "mean"),
+        Hs_mean=(hs_col, "mean"),
+        Tp_mean=(tp_col, "mean"),
+        conteo=(hs_col, "size")
+        #ocurrencia = (hs_col, lambda x: (x.count() / len(df)) * 100 if len(df) > 0 else 0),
+        #ocurrencia_anual = (hs_col, lambda x: (x.count() / len(df)) * 365 if len(df) > 0 else 0)
+    ).reset_index()
+
+    total = grp["conteo"].sum()
+    grp["ocurrencia (%)"] = 100 * grp["conteo"] / total if total else 0
+    grp["ocurrencia (dias/año)"] = 365 * grp["conteo"] / total if total else 0
+    grp.round(precision)
+    grp.sort_values("ocurrencia (%)", ascending= False).reset_index(drop=True)
+
+    ax.table(cellText=grp.values, colLabels=grp.columns, loc='center')
+
+    if export_xlsx:
+        try:
+            grp.to_excel(f"out/tabla_ocurrencia_{estacion}_hs_tp_dir.xlsx", index=False)
+        except Exception as e:
+            print(f"Error exporting occurrence table to Excel: {e}")
+
+    return ax
+
+def get_bar_x_estacion(ax, categories, counts):
+
+    bar_container = ax.bar(categories, counts)
+    ax.bar_label(bar_container, fmt='%.2f%%')
+
