@@ -15,25 +15,25 @@ def report_olas(df, con):
 
     # Dp: barras
     fig_dir_bars, ax_dir_bars = plt.subplots(figsize=(8, 6))
-    get_bars(ax_dir_bars, df, eje_x='dir_bins16')
+    get_bars(ax_dir_bars, df, eje_x='dir_bins16', xlabel='Dp(°)', ylabel='Frecuencia (%)')
 
     # Dp: serie temporal
     fig_dir_ts, ax_dp_ts = plt.subplots(figsize=(10, 4))
-    get_time_series(ax_dp_ts, df, 'date', 'dirtp_dgs', 'Fecha', 'dir_dgs', 'Serie temporal de dir_dgs')
+    get_time_series(ax_dp_ts, df, 'date', 'dirtp_dgs', 'Fecha', 'Dp [°]', 'Serie temporal de dir_dgs', labels={'dirtp_dgs': 'Dp'})
 
     # HS: serie temporal
     fig_hs_ts, ax_hs_ts = plt.subplots(figsize=(10, 4))
-    get_time_series(ax_hs_ts, df, 'date', 'hs_m', 'Fecha', 'hs_m', 'Serie temporal de hs_m')
+    get_time_series(ax_hs_ts, df, 'date', 'hs_m', 'Fecha', 'Hs [m]', 'Serie temporal de hs_m', labels={'hs_m': 'Hs'})
 
     # H_max: serie temporal máximos
     if 'hmax_m' in df.columns:
         fig_hs_max_ts, ax_hs_max_ts = plt.subplots(figsize=(10, 4))
-        get_time_series(ax_hs_max_ts, df, 'date', 'hmax_m', 'Fecha', 'hmax_m', 'Serie temporal de hmax_m')
+        get_time_series(ax_hs_max_ts, df, 'date', 'hmax_m', 'Fecha', 'Hmax [m]', 'Serie temporal de hmax_m', labels={'hmax_m': 'Hmax'})
     else:
         fig_hs_max_ts = None
     # HS: barras
     fig_hs_bars, ax_hs_bars = plt.subplots(figsize=(8, 6))
-    get_bars(ax_hs_bars, df, eje_x='hs_bins')
+    get_bars(ax_hs_bars, df, eje_x='hs_bins', xlabel='Hs (m)', ylabel='Frecuencia (%)')
 
     # HS: rosa
     fig_hs_rose, ax_hs_rose = plt.subplots(figsize=(8, 6))
@@ -41,7 +41,8 @@ def report_olas(df, con):
 
     # HS: rosa (plotly/windrose lib)
     fig_hs_rose_wr, ax_hs_rose_wr = plt.subplots(figsize=(8, 6))
-    get_polar_from_windrose(fig_hs_rose_wr, df, 'hs_m', 'dirtp_dgs', hs_bins)
+    fig_hs_rose_wr.delaxes(fig_hs_rose_wr.axes[0]) # eliminar el eje creado por plt.subplots() para que windrose pueda usar toda la figura
+    get_polar_from_windrose(fig_hs_rose_wr, df, 'hs_m', 'dirtp_dgs', hs_bins, units='m', display_title='Hs')
 
     # HS: tabla
     fig_hs_table, ax_hs_table = plt.subplots()
@@ -49,11 +50,11 @@ def report_olas(df, con):
 
     # TP: serie temporal
     fig_tp_ts, ax_tp_ts = plt.subplots(figsize=(10, 4))
-    get_time_series(ax_tp_ts, df, 'date', 'tp_s', 'Fecha', 'tp_s', 'Serie temporal de tp_s')
+    get_time_series(ax_tp_ts, df, 'date', 'tp_s', 'Fecha', 'Tp [seg]', 'Serie temporal de tp_s', labels={'tp_s': 'Tp'})
 
     # TP: barras
     fig_tp_bars, ax_tp_bars = plt.subplots(figsize=(8, 6))
-    get_bars(ax_tp_bars, df, eje_x='tp_bins')
+    get_bars(ax_tp_bars, df, eje_x='tp_bins', xlabel='Tp (s)', ylabel='Frecuencia (%)')
 
     # TP: rosa
     fig_tp_rose, ax_tp_rose = plt.subplots(figsize=(8, 6))
@@ -61,7 +62,8 @@ def report_olas(df, con):
 
     # TP: rosa (plotly/windrose lib)
     fig_tp_rose_wr, ax_tp_rose_wr = plt.subplots(figsize=(8, 6))
-    get_polar_from_windrose(fig_tp_rose_wr, df, 'tp_s', 'dirtp_dgs', tp_bins)
+    fig_tp_rose_wr.delaxes(fig_tp_rose_wr.axes[0]) # eliminar el eje creado por plt.subplots() para que windrose pueda usar toda la figura
+    get_polar_from_windrose(fig_tp_rose_wr, df, 'tp_s', 'dirtp_dgs', tp_bins, units='s', display_title='Tp')
 
     # TP: tabla
     fig_tp_table, ax_tp_table = plt.subplots()
@@ -128,7 +130,7 @@ def report_olas(df, con):
             pass
 
         # Save HS figures
-        for fig_obj in [fig_hs_ts, fig_hs_max_ts, fig_hs_bars, fig_hs_rose, fig_hs_rose_wr, fig_hs_table]:
+        for fig_obj in [fig_hs_ts, fig_hs_max_ts, fig_hs_bars, fig_hs_rose_wr, fig_hs_rose, fig_hs_table]: #,
             try:
                 fig_obj.tight_layout()
             except Exception:
@@ -149,7 +151,7 @@ def report_olas(df, con):
             pass
 
         # Save TP figures
-        for fig_obj in [fig_tp_ts, fig_tp_bars, fig_tp_rose, fig_tp_rose_wr, fig_tp_table, fig_hs_tp_table, fig_table_describe, fig_table_ocurrence]:
+        for fig_obj in [fig_tp_ts, fig_tp_bars, fig_tp_rose_wr, fig_tp_rose, fig_tp_table, fig_hs_tp_table, fig_table_describe, fig_table_ocurrence]: #,
             try:
                 fig_obj.tight_layout()
             except Exception:

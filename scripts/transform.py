@@ -26,14 +26,28 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
         df = df[df["error_code"] == 0]
     if "Fecha y Hora" in df.columns:
         df["date"] = pd.to_datetime(df["Fecha y Hora"])
+    elif "ate" in df.columns and "Hour" in df.columns:
+        # Combine separate Date and Hour columns to preserve time
+        df["date"] = pd.to_datetime(df["Date"].astype(str) + " " + df["Hour"].astype(str), errors='coerce')
     elif "Date" in df.columns:
         df["date"] = pd.to_datetime(df["Date"])
+    elif "year" in df.columns and "month" in df.columns and "day" in df.columns:
+        # Combine year/month/day with hour if present
+        if "hour" in df.columns:
+            df["date"] = pd.to_datetime(df[["year", "month", "day", "hour"]], errors='coerce')
+        else:
+            df["date"] = pd.to_datetime(df[["year", "month", "day"]])
     else:
-        df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+        # Fallback for any other date-like column
+        df["date"] = pd.to_datetime(df.get("date", None), errors='coerce')
     # Coerce key numeric columns to numeric values; invalid parses become NaN
     for _col in ("dirtp_dgs", "tp_s", "hs_m", "hmax_m"):
         if _col in df.columns:
             df[_col] = pd.to_numeric(df[_col], errors="coerce")
+
+    # filter out rows where maximum height is less than significant height
+    if "hmax_m" in df.columns and "hs_m" in df.columns:
+        df = df[df["hmax_m"] >= df["hs_m"]]
 
     df = df[df["dirtp_dgs"] >= 0]  # remove invalid negative directions
 
@@ -47,10 +61,20 @@ def transformar(df, tp_bins = [0, 10, 13, 16, 20], hs_bins = [0, 0.35, 0.4, 0.45
     # Use assignment (avoid inplace) and copy to ensure a clean DataFrame view.
     df = df.dropna(subset=["dirtp_dgs", "tp_s", "hs_m"]).copy()
 
+    # Remove tp_s outliers using IQR (Interquartile Range) method
+    if "tp_s" in df.columns and len(df) > 0:
+        Q1 = df["tp_s"].quantile(0.25)
+        Q3 = df["tp_s"].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        df = df[(df["tp_s"] >= lower_bound) & (df["tp_s"] <= upper_bound)].copy()
+
     df['dir_bins16'] = deg_to_dir16(df["dirtp_dgs"])
     df['tp_bins'] = pd.cut(df["tp_s"],bins=tp_bins,right=False) #left-inclusive and right-exclusive
     df['hs_bins'] = pd.cut(df["hs_m"],bins=hs_bins,right=False) #left-inclusive and right-exclusive
 
+    print(df.head())
     return df
 
 def transformar_corrientes(df, cols_rename, cols_drop, cols_capas):

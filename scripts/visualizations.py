@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from windrose import WindroseAxes
+import matplotlib.dates as mdates
 
 from config import DIR16_LABELS
+from matplotlib.colors import ListedColormap
 
 def get_polar_rose_plot(ax, df, r, theta, intervals, cardinales=DIR16_LABELS, normed=True):
     """Dibuja una rosa de vientos (barras polares apiladas) en el eje proporcionado.
@@ -271,7 +273,7 @@ def get_histogram(ax, data, bins, xlabel=None, ylabel='Frequency', title=None, c
             pass
     return ax
 
-def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
+def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title, labels=None):
     """Simple time-series plotter.
 
     Requisitos mínimos: debe recibir `ax`, `df`, `x_col`, `y_cols`, `xlabel`,
@@ -279,6 +281,8 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
 
     - x_col: nombre de la columna datetime en `df`.
     - y_cols: nombre de columna (str) o lista de columnas a graficar.
+    - labels: dict opcional que mapea nombres de columnas a etiquetas personalizadas
+              (ej: {'hs_m': 'Altura Significativa', 'tp_s': 'Periodo Pico'})
     """
 
     # Validate required parameters
@@ -288,7 +292,7 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
     if x_col not in df.columns:
         raise KeyError(f"Columna de tiempo '{x_col}' no encontrada en el DataFrame")
 
-    # Prepare dataframe
+    # Prepare dataframe and ensure datetime
     df_local = df.copy()
     df_local[x_col] = pd.to_datetime(df_local[x_col], errors='coerce', dayfirst=True, infer_datetime_format=True)
 
@@ -299,38 +303,117 @@ def get_time_series(ax, df, x_col, y_cols, xlabel, ylabel, title):
         if y not in df_local.columns:
             raise KeyError(f"Columna '{y}' no encontrada en el DataFrame")
 
-    # Drop rows where x_col is NaT
-    plot_df = df_local[[x_col] + y_cols].dropna()
+    # Keep only rows where time is valid; allow NaNs in series (line will skip them)
+    plot_df = df_local[[x_col] + y_cols].dropna(subset=[x_col])
+    plot_df = plot_df.sort_values(by=x_col).reset_index(drop=True)
 
-    # Sort by time
-    plot_df = plot_df.sort_values(by=x_col)
+    # Interpolate missing values in y columns to fill gaps and show continuous line
+    #for y in y_cols:
+    #    plot_df[y] = plot_df[y].interpolate(method='linear', limit_direction='both')
 
-    ax.cla()
+    #ax.cla()
+
+    # Styling similar to the example: simple black line, thin width, subtle grid
     for y in y_cols:
-        ax.plot(plot_df[x_col], plot_df[y], label=y)
+        # Use custom label if provided, otherwise use column name
+        display_label = labels.get(y, y) if labels else y
+        ax.plot(plot_df[x_col], plot_df[y], color='k', linewidth=0.9, solid_capstyle='round', label=display_label)
 
+    # Axis labels and title
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.grid(True, linestyle='--', alpha=0.4)
-    ax.legend()
 
+    # Smart y-limits: include a small margin; don't force negative lower bound
     try:
-        fig = ax.get_figure()
-        fig.autofmt_xdate()
+        y_vals = plot_df[y_cols].values.flatten()
+        y_vals = y_vals[~pd.isna(y_vals)]
+        if y_vals.size > 0:
+            y_min, y_max = float(y_vals.min()*0.75), float(y_vals.max()*1.25)
+            yrange = max(1e-6, y_max - y_min)
+            pad = yrange * 0.08
+            lower = max(0.0, y_min - pad)
+            upper = y_max + pad
+            ax.set_ylim(lower, upper)
     except Exception:
         pass
 
+    # Grid styling: horizontal lighter lines, vertical solid lines
+    ax.grid(which='major', axis='y', linestyle='-', color='#dddddd', linewidth=0.5)
+    ax.grid(which='major', axis='x', linestyle='-', color='#cccccc', linewidth=0.5)
+
+    # Remove border (spines)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    # Date formatting on x-axis: weekly ticks (like the example)
+    try:
+        locator = mdates.WeekdayLocator(byweekday=mdates.MO)
+        formatter = mdates.DateFormatter('%Y-%m-%d')
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_minor_locator(mdates.DayLocator())
+        for label in ax.get_xticklabels():
+            label.set_rotation(0)
+            label.set_ha('center')
+            label.set_fontsize(8)
+        # Hide tick marks but keep labels
+        ax.tick_params(axis='x', which='both', length=0)
+        ax.tick_params(axis='y', which='both', length=0)
+    except Exception:
+        try:
+            fig = ax.get_figure()
+            fig.autofmt_xdate()
+        except Exception:
+            pass
+
+    # Legend as a small boxed label (rounded)
+    leg = ax.legend(frameon=True, loc='upper left')
+    if leg is not None:
+        frame = leg.get_frame()
+        frame.set_edgecolor('#444444')
+        frame.set_linewidth(0.4)
+        frame.set_alpha(0.9)
+
+    # Tidy ticks
+    ax.tick_params(axis='both', which='major', labelsize=8)
+
     return ax
 
-def get_polar_from_windrose(fig, df, r, theta, bins):
+def get_polar_from_windrose(fig, df, r, theta, bins, units='m', display_title=None):
     ax2 = WindroseAxes.from_ax(fig=fig)
+    #ax2.set_xticklabels(('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'))
     ax2.set_xticklabels(('E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'))
-    ax2.bar(df[theta], df[r], normed=True, bins=bins, opening=0.8, nsector=16, edgecolor='white')
-    ax2.set_title(r, fontsize=12, weight='bold')
-    ax2.set_legend()
 
-def get_bars(ax, df, eje_x, porcentaje=True, color='C0'):
+    # Create custom colormap matching the image: cyan, yellow, dark red
+    #colors = ['#00BFFF', '#FFD700', '#8B0000']  # cyan, yellow, dark red
+    #cmap = ListedColormap(colors)
+
+    ax2.bar(df[theta], df[r], normed=True, bins=bins,
+            opening=0.8, nsector=16, edgecolor='white',
+            )#cmap=cmap)
+
+    # Format radial grid labels as percentages based on the actual frequency data
+    try:
+        ymin, ymax = ax2.get_ylim()
+        ymax_rounded = np.ceil(ymax / 10) * 10
+        new_ticks = np.arange(0, ymax_rounded + 10, 10)
+        ax2.set_yticks(new_ticks)
+        yticks = ax2.get_yticks()
+        # Format as percentages directly (yticks are already proportional values)
+        yticklabels = [f'{int(y)}%' for y in yticks if y >= 0]
+        ax2.set_yticklabels(yticklabels, fontsize=9)
+    except Exception:
+        pass
+
+    # Use custom title label if provided, otherwise use column name
+    display_title = display_title if display_title else r
+    ax2.set_title(display_title, fontsize=12, weight='bold')
+    legend = ax2.legend(title=f'{display_title} [{units}]', loc='lower right', framealpha=0.95)
+    if legend is not None:
+        legend.get_title().set_fontsize(10)
+
+def get_bars(ax, df, eje_x, porcentaje=True, color='C0', xlabel='Categoría', ylabel='Frecuencia (%)'):
     """
     Dibuja un gráfico de barras categórico basado en los totales de una sola columna.
 
@@ -338,7 +421,7 @@ def get_bars(ax, df, eje_x, porcentaje=True, color='C0'):
     ----------
     ax : matplotlib.axes.Axes
         Eje donde se dibuja el gráfico.
-    tabla : pandas.DataFrame
+    df : pandas.DataFrame
         DataFrame con los datos originales.
     eje_x : str
         Nombre de la columna categórica para el eje X.
@@ -371,29 +454,33 @@ def get_bars(ax, df, eje_x, porcentaje=True, color='C0'):
     valores = conteos.values
     posiciones = range(len(etiquetas))
 
-    barras = ax.bar(posiciones, valores, color=color, edgecolor='black')
+    barras = ax.bar(posiciones, valores, color='#AAA5A7', edgecolor='black', linewidth=0.7)
 
-    # Etiquetas encima de cada barra
+    # Etiquetas encima de cada barra (matching image style)
     for barra, valor in zip(barras, valores):
         texto = f"{valor:.2f}%" if porcentaje else f"{valor:.0f}"
         ax.text(
             barra.get_x() + barra.get_width() / 2,
-            barra.get_height(),
+            barra.get_height() + 1,
             texto,
             ha='center',
             va='bottom',
-            fontsize=8
+            fontsize=9,
+            fontweight='bold'
         )
 
     ax.set_xticks(posiciones)
-    ax.set_xticklabels(etiquetas, rotation=45, ha='right')
+    ax.set_xticklabels(etiquetas, rotation=0, ha='center', fontsize=9)
 
-    ax.set_xlabel(eje_x)
-    ax.set_ylabel('Frecuencia (%)' if porcentaje else 'Frecuencia')
-    sufijo = "(%)" if porcentaje else "(conteos)"
-    ax.set_title(f'Totales por {eje_x} {sufijo}', pad=10)
+    ax.set_xlabel(xlabel, fontsize=10)
+    ax.set_ylabel(ylabel, fontsize=10)
 
-    ax.grid(True, linestyle='--', alpha=0.4)
+    ax.set_ylim(0, 100)
+    ax.grid(True, axis='y', linestyle='-', color='#e0e0e0', linewidth=0.8, alpha=0.5)
+    ax.set_axisbelow(True)
+
+
+
     return ax
 
 def get_table_statistics_summary(fig, ax, df, colnames):

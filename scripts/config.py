@@ -170,6 +170,24 @@ CONFIG_OLAS = [
             'Peak period (Tp)': 'tp_s',
             'Error Code': 'error_code'
         },
+    },
+        {
+        'path': './in/DATA-ADCP-4_OLAS.xlsx',
+        'estacion': 'ADCP 3',
+        'hs_bins': [0.3, 0.4, 0.5, 0.6, 0.8],
+        'tp_bins': [0, 10, 12, 14, 16, 20],
+        'report_title': 'Olas_ADCP4_verano2023',
+        'analisis': 'olas',
+        'cols_rename': {
+            'Mes': 'month',
+            'Dia': 'day',
+            'Año': 'year',
+            'Hs': 'hs_m',
+            #'Maximum height (Hmax)': 'hmax_m',
+            'Dp': 'dirtp_dgs',
+            'tp': 'tp_s',
+            'Error Code': 'error_code'
+        },
     }
 ]
 
@@ -184,4 +202,27 @@ CONFIG_OLAS_ADCP2_OLD = [
     }
 ]
 
-CONFIG_ANALISIS = CONFIG_SEDIMENTOS
+CONFIG_OLAS_ADCP4 = [
+{
+        'path': './in/DATA-ADCP-4_OLAS.xlsx',
+        'estacion': 'ADCP 4',
+        'hs_bins': [0.2, 0.5, 0.8, 1.1],
+        'tp_bins': [8, 10, 12, 14, 16],
+        'report_title': 'Olas_ADCP4_verano2023',
+        'analisis': 'olas',
+        'cols_rename': {
+            'Hora': 'hour',
+            'Mes': 'month',
+            'Dia': 'day',
+            'Año': 'year',
+            'Hs': 'hs_m',
+            'Hmax': 'hmax_m',
+            'Dp': 'dirtp_dgs',
+            'tp': 'tp_s',
+            'Error Code': 'error_code'
+        },
+    }
+]
+
+
+CONFIG_ANALISIS = CONFIG_OLAS_ADCP4
